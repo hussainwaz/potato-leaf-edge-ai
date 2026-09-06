@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Potato leaf disease, on your device</title>
+    <meta name="description"
+        content="A 1.7 MB classifier running in your browser. 100% on studio photographs, 57.5% in the field." />
+    <link rel="icon"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%A5%94%3C/text%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&display=swap"
+        rel="stylesheet" />
+    <style>
+        :root {
+            --paper: oklch(0.958 0.017 90);
+            --paper-deep: oklch(0.924 0.022 88);
+            --ink: oklch(0.29 0.062 300);
+            --ink-2: oklch(0.44 0.055 300);
+            --ink-3: oklch(0.53 0.045 300);
+            --violet: oklch(0.45 0.28 288);
+            --violet-bright: oklch(0.63 0.24 288);
+            --night: oklch(0.21 0.022 292);
+            --line: oklch(0.29 0.062 300 / 0.16);
+            --line-strong: oklch(0.29 0.062 300 / 0.34);
+            --ok: oklch(0.55 0.16 150);
+            --bad: oklch(0.55 0.20 25);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--paper);
+            color: var(--ink);
+            font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+            font-size: 15px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .wrap { max-width: 1100px; margin: 0 auto; padding: clamp(24px, 5vw, 64px) clamp(16px, 4vw, 40px) 80px; }
+
+        .tag {
+            font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+            text-transform: uppercase; font-variant-numeric: tabular-nums;
+        }
+
+        h1 {
+            font-size: clamp(2rem, 1.2rem + 3.4vw, 3.6rem);
+            font-weight: 600; letter-spacing: -0.025em; line-height: 1.02;
+            margin: 10px 0 0;
+        }
+        h1 .dot { color: var(--violet); }
+
+        .lede { max-width: 62ch; margin-top: 16px; color: var(--ink-2); font-size: clamp(15px, 1.1vw, 17px); }
+
+        .headline {
+            display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px;
+        }
+        .stat {
+            border: 1px solid var(--line-strong); border-radius: 999px;
+            padding: 7px 16px; font-size: 13px; font-weight: 500;
+            display: flex; align-items: baseline; gap: 8px;
+        }
+        .stat b { font-size: 15px; font-variant-numeric: tabular-nums; }
+        .stat.lab b { color: var(--ok); }
+        .stat.field b { color: var(--bad); }
+
+        .status {
+            margin-top: 26px; padding: 10px 16px; border-radius: 12px;
+            background: var(--paper-deep); color: var(--ink-2);
+            font-size: 13px; display: inline-flex; align-items: center; gap: 10px;
+        }
+        .status .lamp {
+            width: 8px; height: 8px; border-radius: 999px; background: var(--ink-3);
+        }
+        .status.ready .lamp { background: var(--ok); }
+        .status.ready { color: var(--ink); }
+
+        h2 {
+            font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+            color: var(--ink-2); margin: 40px 0 4px; padding-bottom: 8px;
+            border-bottom: 1px solid var(--line);
+            display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+        }
+        h2 span { font-weight: 500; letter-spacing: 0.02em; text-transform: none; color: var(--ink-3); font-size: 12px; }
+
+        .strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 16px; }
+
+        .thumb {
+            position: relative; border: 0; padding: 0; cursor: pointer; background: none;
+            border-radius: 14px; overflow: hidden; aspect-ratio: 1;
+            outline: 2px solid transparent; outline-offset: 2px;
+            transition: outline-color .18s ease, transform .18s ease;
+        }
+        .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .thumb:hover { transform: translateY(-2px); outline-color: var(--line-strong); }
+        .thumb[aria-current="true"] { outline-color: var(--violet); }
+        .thumb figcaption {
+            position: absolute; left: 6px; bottom: 6px;
+            background: oklch(0.21 0.022 292 / 0.82); color: var(--paper);
+            border-radius: 999px; padding: 3px 9px; font-size: 10px; font-weight: 600;
+            letter-spacing: 0.06em; text-transform: uppercase;
+        }
+
+        .panel {
+            margin-top: 20px; border: 1px solid var(--line-strong); border-radius: 22px;
+            overflow: hidden; display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+        }
+        @media (max-width: 720px) { .panel { grid-template-columns: 1fr; } }
+
+        .panel-img { background: var(--night); aspect-ratio: 1; position: relative; }
+        .panel-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .panel-img .empty {
+            position: absolute; inset: 0; display: grid; place-items: center;
+            color: oklch(0.958 0.017 90 / 0.45); font-size: 13px; padding: 24px; text-align: center;
+        }
+        .panel-img .empty[hidden] { display: none; }
+
+        .panel-body { padding: clamp(18px, 3vw, 28px); display: flex; flex-direction: column; }
+
+        .verdict { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .verdict .mark {
+            width: 26px; height: 26px; border-radius: 999px; display: grid; place-items: center;
+            color: var(--paper); font-size: 14px; font-weight: 700;
+        }
+        .verdict.ok .mark { background: var(--ok); }
+        .verdict.bad .mark { background: var(--bad); }
+        .verdict .said { font-size: clamp(1.3rem, 1rem + 1.2vw, 1.9rem); font-weight: 600; letter-spacing: -0.02em; }
+
+        .truth { margin-top: 6px; color: var(--ink-3); font-size: 13px; }
+        .truth b { color: var(--ink); font-weight: 600; }
+
+        .bars { margin-top: 22px; display: grid; gap: 10px; }
+        .bar-row { display: grid; grid-template-columns: 96px 1fr 52px; align-items: center; gap: 12px; font-size: 13px; }
+        .bar-track { display: block; height: 8px; border-radius: 999px; background: var(--paper-deep); overflow: hidden; }
+        .bar-fill { display: block; height: 100%; background: var(--violet); border-radius: 999px; width: 0; transition: width .45s cubic-bezier(.16,1,.3,1); }
+        .bar-row.top .bar-fill { background: var(--violet); }
+        .bar-row .pct { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+
+        .meta { margin-top: auto; padding-top: 22px; display: flex; gap: 18px; flex-wrap: wrap; color: var(--ink-3); font-size: 12px; }
+        .meta b { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 600; }
+
+        .drop {
+            margin-top: 14px; border: 1px dashed var(--line-strong); border-radius: 16px;
+            padding: 18px; text-align: center; color: var(--ink-3); font-size: 13px;
+            transition: border-color .18s ease, background .18s ease;
+        }
+        .drop.over { border-color: var(--violet); background: var(--paper-deep); }
+        .drop label { color: var(--violet); font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+        .drop input { display: none; }
+
+        footer { margin-top: 52px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px; }
+        footer a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line-strong); }
+        footer a:hover { text-decoration-color: var(--violet); color: var(--violet); }
+        .note { margin-top: 10px; max-width: 68ch; }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <p class="tag" style="color: var(--violet)">Edge AI · runs in your browser</p>
+        <h1>Potato leaf disease,<br />on your device<span class="dot">.</span></h1>
+
+        <p class="lede">
+            A 1.7 MB classifier, quantized to int8, running entirely on your machine — no server sees these
+            images. It scores <b>100%</b> on the studio photographs it was trained on and <b>57.5%</b> on real
+            field photographs of the same two diseases, where guessing scores 50%. Same disease, same model;
+            only the photograph changed.
+        </p>
+
+        <div class="headline">
+            <span class="stat lab">Studio held-out set <b>100.0%</b></span>
+            <span class="stat field">Real field photos <b>57.5%</b></span>
+            <span class="stat">Model <b>1.7 MB</b></span>
+        </div>
+
+        <div class="status" id="status"><span class="lamp"></span><span id="status-text">Loading model…</span></div>
+
+        <h2>Studio conditions <span>PlantVillage — the data it was trained on</span></h2>
+        <div class="strip" id="strip-lab"></div>
+
+        <h2>Field conditions <span>PlantDoc — real photographs, never seen in training</span></h2>
+        <div class="strip" id="strip-field"></div>
+
+        <div class="panel">
+            <div class="panel-img" id="panel-img">
+                <div class="empty" id="panel-empty">Pick a leaf above and the model will run here, on your device.</div>
+            </div>
+            <div class="panel-body">
+                <div class="verdict" id="verdict" hidden>
+                    <span class="mark" id="mark"></span>
+                    <span class="said" id="said"></span>
+                </div>
+                <p class="truth" id="truth"></p>
+                <div class="bars" id="bars"></div>
+                <div class="meta" id="meta"></div>
+            </div>
+        </div>
+
+        <div class="drop" id="drop">
+            Or drop your own leaf photo here — <label for="file">choose a file</label>. It never leaves your device.
+            <input type="file" id="file" accept="image/*" />
+        </div>
+
+        <footer>
+            <p>
+                <a href="https://github.com/hussainwaz/potato-leaf-edge-ai">Code, method and full results on GitHub</a>
+                · built by <a href="https://hussainnawaz.vercel.app">Hussain Nawaz</a>
+            </p>
+            <p class="note">
+                Why it fails outdoors: the training images are single detached leaves photographed face-up on a
+                uniform background. A network can score well on them without learning much about disease — one
+                published study reached 49% using nothing but 8 background pixels. Field photographs have soil,
+                sky, hands and uneven light, and the accuracy collapses. Studio benchmarks are not evidence that
+                a model works. The model served here is statically quantized to int8: 3.5&times; smaller than the
+                float version and, on a laptop CPU, slightly faster — where the one-line dynamic quantization was
+                2.2&times; <em>slower</em> and could not run in a browser at all.
+            </p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.0/dist/ort.min.js"></script>
+    <script>
+        const CLASSES = ["early_blight", "healthy", "late_blight"];
+        const PRETTY = { early_blight: "Early blight", healthy: "Healthy", late_blight: "Late blight" };
+        const SIZE = 224;
+
+        const el = (id) => document.getElementById(id);
+        let session = null;
+        let samples = [];
+
+        /** Resize shortest side to 224, centre-crop, scale to [0,1], CHW.
+         *  Matches the training preprocessing exactly (no mean/std normalisation). */
+        function preprocess(img) {
+            const scale = SIZE / Math.min(img.naturalWidth, img.naturalHeight);
+            const w = Math.max(SIZE, Math.round(img.naturalWidth * scale));
+            const h = Math.max(SIZE, Math.round(img.naturalHeight * scale));
+            const c = document.createElement("canvas");
+            c.width = w; c.height = h;
+            const cx = c.getContext("2d", { willReadFrequently: true });
+            cx.imageSmoothingEnabled = true;
+            cx.imageSmoothingQuality = "high";
+            cx.drawImage(img, 0, 0, w, h);
+
+            const sx = Math.floor((w - SIZE) / 2);
+            const sy = Math.floor((h - SIZE) / 2);
+            const d = cx.getImageData(sx, sy, SIZE, SIZE).data;
+
+            const n = SIZE * SIZE;
+            const t = new Float32Array(3 * n);
+            for (let i = 0; i < n; i++) {
+                t[i] = d[i * 4] / 255;
+                t[n + i] = d[i * 4 + 1] / 255;
+                t[2 * n + i] = d[i * 4 + 2] / 255;
+            }
+            return new ort.Tensor("float32", t, [1, 3, SIZE, SIZE]);
+        }
+
+        async function classify(img) {
+            const tensor = preprocess(img);
+            const t0 = performance.now();
+            const out = await session.run({ images: tensor });
+            const ms = performance.now() - t0;
+            return { probs: Array.from(out.output0.data), ms };
+        }
+
+        function render(img, probs, ms, truth) {
+            el("panel-empty").hidden = true;
+            const holder = el("panel-img");
+            let shown = holder.querySelector("img");
+            if (!shown) { shown = document.createElement("img"); holder.appendChild(shown); }
+            shown.src = img.src;
+
+            const top = probs.indexOf(Math.max(...probs));
+            const said = CLASSES[top];
+
+            const verdict = el("verdict");
+            verdict.hidden = false;
+            if (truth) {
+                const ok = said === truth;
+                verdict.className = "verdict " + (ok ? "ok" : "bad");
+                el("mark").textContent = ok ? "✓" : "✕";
+                el("truth").innerHTML = ok
+                    ? `Correct — this leaf really is <b>${PRETTY[truth].toLowerCase()}</b>.`
+                    : `Wrong — this leaf is actually <b>${PRETTY[truth].toLowerCase()}</b>.`;
+            } else {
+                verdict.className = "verdict";
+                el("mark").textContent = "?";
+                el("mark").style.background = "var(--ink-3)";
+                el("truth").textContent = "Your image — no ground truth to check against.";
+            }
+            el("said").textContent = `The model says: ${PRETTY[said]}`;
+
+            el("bars").innerHTML = CLASSES.map((c, i) => `
+                <div class="bar-row ${i === top ? "top" : ""}">
+                    <span>${PRETTY[c]}</span>
+                    <span class="bar-track"><span class="bar-fill" data-w="${(probs[i] * 100).toFixed(1)}"></span></span>
+                    <span class="pct">${(probs[i] * 100).toFixed(1)}%</span>
+                </div>`).join("");
+            requestAnimationFrame(() => {
+                document.querySelectorAll(".bar-fill").forEach((b) => { b.style.width = b.dataset.w + "%"; });
+            });
+
+            el("meta").innerHTML =
+                `<span>inference <b>${ms.toFixed(1)} ms</b></span>` +
+                `<span>model <b>1.7 MB</b>, int8</span>` +
+                `<span>ran <b>on your device</b></span>`;
+        }
+
+        function card(s) {
+            const b = document.createElement("button");
+            b.className = "thumb";
+            b.type = "button";
+            b.innerHTML = `<img src="${s.file}" alt="${PRETTY[s.truth]} leaf, ${s.set} conditions" loading="lazy" />
+                           <figcaption>${PRETTY[s.truth]}</figcaption>`;
+            b.addEventListener("click", async () => {
+                document.querySelectorAll(".thumb").forEach((t) => t.setAttribute("aria-current", "false"));
+                b.setAttribute("aria-current", "true");
+                const img = b.querySelector("img");
+                const { probs, ms } = await classify(img);
+                render(img, probs, ms, s.truth);
+                document.querySelector(".panel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+            });
+            return b;
+        }
+
+        async function main() {
+            samples = await (await fetch("samples.json")).json();
+            samples.filter((s) => s.set === "lab").forEach((s) => el("strip-lab").appendChild(card(s)));
+            samples.filter((s) => s.set === "field").forEach((s) => el("strip-field").appendChild(card(s)));
+
+            ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.0/dist/";
+            ort.env.wasm.numThreads = 1;
+            session = await ort.InferenceSession.create("model/best_int8_static.onnx", {
+                executionProviders: ["wasm"],
+            });
+
+            el("status").className = "status ready";
+            el("status-text").textContent = "Model loaded — pick a leaf below.";
+            document.body.dataset.ready = "1";
+        }
+
+        // Bring your own photo
+        const drop = el("drop");
+        const handleFile = (file) => {
+            if (!file || !file.type.startsWith("image/")) return;
+            const img = new Image();
+            img.onload = async () => {
+                document.querySelectorAll(".thumb").forEach((t) => t.setAttribute("aria-current", "false"));
+                const { probs, ms } = await classify(img);
+                render(img, probs, ms, null);
+            };
+            img.src = URL.createObjectURL(file);
+        };
+        el("file").addEventListener("change", (e) => handleFile(e.target.files[0]));
+        ["dragenter", "dragover"].forEach((ev) =>
+            drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+        ["dragleave", "drop"].forEach((ev) =>
+            drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+        drop.addEventListener("drop", (e) => handleFile(e.dataTransfer.files[0]));
+
+        main().catch((err) => {
+            el("status-text").textContent = "Could not load the model: " + err.message;
+            console.error(err);
+        });
+    </script>
+</body>
+
+</html>

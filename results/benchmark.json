@@ -20,5 +20,13 @@
     "top1": 100.0,
     "median_ms": 6.0,
     "p95_ms": 6.05
+  },
+  {
+    "model": "ONNX int8 (static)",
+    "file": "best_int8_static.onnx",
+    "size_mb": 1.7,
+    "top1": 100.0,
+    "median_ms": 2.07,
+    "p95_ms": 2.12
   }
 ]

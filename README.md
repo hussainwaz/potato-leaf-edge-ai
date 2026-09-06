@@ -18,24 +18,34 @@ That gap is the point of the project.
 | model | file size | top-1 | median latency | p95 |
 |---|---|---|---|---|
 | PyTorch fp32 | 3.04 MB | 100.0% | — | — |
-| ONNX fp32 | 5.88 MB | 100.0% | **2.78 ms** | 2.83 ms |
-| ONNX int8 (dynamic) | **1.57 MB** | 100.0% | 6.00 ms | 6.05 ms |
+| ONNX fp32 | 5.88 MB | 100.0% | 2.78 ms | 2.83 ms |
+| ONNX int8, **dynamic** | 1.57 MB | 100.0% | 6.00 ms | 6.05 ms |
+| ONNX int8, **static (QDQ)** | **1.70 MB** | 100.0% | **2.07 ms** | 2.12 ms |
 
 Latency is single-image, single-threaded CPU inference on an Apple M4: 20 warmup
 iterations, then 200 timed iterations, reported as median and p95 rather than
 mean. Single-threaded on purpose — the interesting question is what one core of
 an embedded board would do, and a laptop's full core count flatters the number.
 
-**Quantizing to int8 made the model 3.7x smaller and 2.2x slower.** That is not
-a mistake, and it is worth stating plainly because it contradicts the usual
-assumption. Dynamic-range quantization stores weights as int8 but quantizes and
-dequantizes activations at runtime; on a CPU with strong float SIMD, that
-overhead costs more than the narrower weights save. Dynamic int8 buys you
-*space*, not *speed*. Getting a speedup needs full static int8 with a
-calibration set, and hardware whose integer path is genuinely faster.
+**How you quantize matters more than whether you quantize.**
 
-Accuracy was unchanged at every precision — which tells you the task is not
-hard enough to expose quantization damage.
+The one-line approach, `quantize_dynamic`, needs no data and is what most
+tutorials reach for. It made the model 3.7x smaller and **2.2x slower**.
+Dynamic quantization stores weights as int8 but quantizes and dequantizes
+activations at runtime; on a CPU with strong float SIMD, that overhead costs
+more than the narrower weights save. It also emits `ConvInteger` operators,
+which ONNX Runtime Web has no kernel for — so that model cannot run in a
+browser at all.
+
+Static quantization measures activation ranges ahead of time from a
+calibration sample (200 training images here) and emits QDQ nodes instead. It
+is **3.5x smaller than float and 1.34x faster**, and it runs in a browser. It
+costs one extra script and a few minutes.
+
+So the honest conclusion is not "int8 is slower". It is that the convenient
+form of int8 is slower, and the correct form needs calibration data most
+tutorials skip. Accuracy was unchanged at every precision — which mostly tells
+you this task is not hard enough to expose quantization damage.
 
 ### 2. Real field photographs, PlantDoc (221 images, 2 classes)
 
@@ -110,9 +120,10 @@ If you are building a real in-field diagnostic tool:
    model works.
 2. **Validate on photographs taken the way users will take them**, in the light
    and framing they will have, at the distance they will use.
-3. **Quantize for the constraint you actually have.** Dynamic int8 helps when
-   storage or download size is the limit. If latency is the limit, it can make
-   things worse — measure on the target hardware before assuming.
+3. **Quantize statically, with calibration data.** Dynamic int8 is one line and
+   costs 2.2x in latency; static int8 needs a calibration set and pays back
+   3.5x in size *and* 1.34x in speed. Measure on the target hardware either
+   way — and check the runtime supports the operators your quantizer emits.
 4. **The remaining errors are early-vs-late blight confusion** (91 of 94
    mistakes), not disease-vs-healthy. The model can tell something is wrong; it
    cannot reliably tell *which* thing under field conditions. For a tool that
@@ -125,13 +136,29 @@ If you are building a real in-field diagnostic tool:
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/pip install ultralytics onnxruntime onnx onnxslim
+.venv/bin/pip install -r requirements.txt
 
 .venv/bin/python scripts/01_build_dataset.py      # build the official split
 .venv/bin/python scripts/02_train.py --epochs 20  # ~6 min on an Apple M4 (MPS)
-.venv/bin/python scripts/03_export_benchmark.py   # export, quantize, measure
+.venv/bin/python scripts/03_export_benchmark.py   # export, dynamic int8, measure
+.venv/bin/python scripts/03b_static_quantize.py   # static int8 with calibration
 .venv/bin/python scripts/04_field_test.py         # the reality check
+.venv/bin/python scripts/05_pick_samples.py       # samples for the web demo
 ```
+
+### The browser demo
+
+`web/` is a static page that runs the statically-quantized model client-side
+with ONNX Runtime Web — the same model, the same preprocessing, on the
+visitor's own machine. Serve it with any static server:
+
+```bash
+cd web && python3 -m http.server 8899
+```
+
+Its JavaScript preprocessing was verified against the Python pipeline: all nine
+sample images produce identical labels, with confidence agreeing to within
+0.21 percentage points (canvas and PIL resample slightly differently).
 
 Fetching the data (both sparse checkouts pull only the potato folders, ~42 MB
 and ~3 MB of images rather than the full 2 GB and 1 GB repositories):
@@ -171,9 +198,10 @@ cd data/pd && git checkout HEAD -- \
   recognise a healthy field leaf is untested here.
 - **The healthy class is tiny** (152 images, 32 in validation), so its
   contribution to the 100% figure rests on few examples.
-- **One hardware target.** Latency was measured on an Apple M4 laptop CPU. An
-  ARM embedded board would give different absolute numbers, and quite possibly
-  a different sign on the int8 speed result.
+- **One hardware target.** Latency was measured on an Apple M4 laptop CPU,
+  single-threaded. An ARM embedded board would give different absolute numbers,
+  and quite possibly a different sign on the dynamic-int8 result. In the
+  browser (WASM) the same model runs at roughly 10-25 ms rather than 2 ms.
 - **No hyperparameter search, one seed.** The lab accuracy is saturated, so
   tuning would not have changed the conclusion; the field number would move
   somewhat with a different seed.

@@ -1,0 +1,65 @@
+[
+  {
+    "set": "lab",
+    "file": "samples/lab/early_blight__a60106e3-e037-495f-8b5a-080adcb9bdd9___RS_Early.B 8561.JPG",
+    "truth": "early_blight",
+    "pred": "early_blight",
+    "conf": 1.0
+  },
+  {
+    "set": "lab",
+    "file": "samples/lab/early_blight__ae25f262-234e-4ee1-96ad-3e47ddfbea9d___RS_Early.B 6670.JPG",
+    "truth": "early_blight",
+    "pred": "early_blight",
+    "conf": 1.0
+  },
+  {
+    "set": "lab",
+    "file": "samples/lab/late_blight__a5aabda7-209a-4e1e-966c-de2a1ccc7869___RS_LB 5046.JPG",
+    "truth": "late_blight",
+    "pred": "late_blight",
+    "conf": 1.0
+  },
+  {
+    "set": "lab",
+    "file": "samples/lab/healthy__ff700844-68ad-4e99-8427-58a39c07f817___RS_HL 1860.JPG",
+    "truth": "healthy",
+    "pred": "healthy",
+    "conf": 0.9997
+  },
+  {
+    "set": "field",
+    "file": "samples/field/early_blight__potato-blight-phytophora-infestans-close-up-of-infected-leaf-top-surface-a60hxg.jpg",
+    "truth": "early_blight",
+    "pred": "early_blight",
+    "conf": 0.9227
+  },
+  {
+    "set": "field",
+    "file": "samples/field/late_blight__late-blight-lesions-potato-leaf-miller-research-809.jpg",
+    "truth": "late_blight",
+    "pred": "late_blight",
+    "conf": 1.0
+  },
+  {
+    "set": "field",
+    "file": "samples/field/early_blight__blight-2x.jpg",
+    "truth": "early_blight",
+    "pred": "late_blight",
+    "conf": 0.9504
+  },
+  {
+    "set": "field",
+    "file": "samples/field/early_blight__potato-blight-damage-on-leaves-caused-by-fungus-phytophthora-picture-id505322893.jpg",
+    "truth": "early_blight",
+    "pred": "late_blight",
+    "conf": 0.7658
+  },
+  {
+    "set": "field",
+    "file": "samples/field/late_blight__Late+Blight+of+Potato+and+Tomato.jpg",
+    "truth": "late_blight",
+    "pred": "early_blight",
+    "conf": 0.9558
+  }
+]
