@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Datasets are fetched by the commands in the README, not committed.
+data/pv/
+data/pd/
+data/dataset/
+data/*.txt
+
+# Training artefacts; weights are kept (small), caches are not
+results/train/*.cache
+runs/

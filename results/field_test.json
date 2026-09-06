@@ -1,0 +1,22 @@
+{
+  "images": 221,
+  "overall_accuracy": 57.47,
+  "per_class": {
+    "early_blight": {
+      "correct": 60,
+      "total": 116
+    },
+    "late_blight": {
+      "correct": 67,
+      "total": 105
+    }
+  },
+  "confusion": {
+    "early_blight->early_blight": 60,
+    "early_blight->late_blight": 55,
+    "late_blight->early_blight": 36,
+    "late_blight->late_blight": 67,
+    "early_blight->healthy": 1,
+    "late_blight->healthy": 2
+  }
+}

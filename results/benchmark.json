@@ -1,0 +1,24 @@
+[
+  {
+    "model": "PyTorch fp32",
+    "file": "best.pt",
+    "size_mb": 3.04,
+    "top1": 100.0
+  },
+  {
+    "model": "ONNX fp32",
+    "file": "best.onnx",
+    "size_mb": 5.88,
+    "top1": 100.0,
+    "median_ms": 2.78,
+    "p95_ms": 2.83
+  },
+  {
+    "model": "ONNX int8",
+    "file": "best_int8.onnx",
+    "size_mb": 1.57,
+    "top1": 100.0,
+    "median_ms": 6.0,
+    "p95_ms": 6.05
+  }
+]
