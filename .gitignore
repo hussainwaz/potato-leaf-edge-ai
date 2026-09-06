@@ -11,3 +11,6 @@ data/*.txt
 # Training artefacts; weights are kept (small), caches are not
 results/train/*.cache
 runs/
+
+# Pretrained backbone, re-downloaded automatically by 02_train.py
+yolo11n-cls.pt
